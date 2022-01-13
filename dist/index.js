@@ -233,9 +233,9 @@ ${this.generateResponseSummaries(points)}
     }
     generateResponseSummary(status, points) {
         return `
-## HTTP ${status}
+## HTTP ${status} (Count ${points.length})
 
-Total Points: ${points.length}
+${points.map(x => x.data.tags.url).join('\n')}
     `;
     }
 }

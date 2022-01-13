@@ -165,9 +165,9 @@ ${this.generateResponseSummaries(points)}
 
   private generateResponseSummary(status: number, points: k6Point[]): string {
     return `
-## HTTP ${status}
+## HTTP ${status} (Count ${points.length})
 
-Total Points: ${points.length}
+${points.map(x => x.data.tags.url).join('\n')}
     `
   }
 }
