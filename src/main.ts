@@ -10,7 +10,11 @@ async function run(): Promise<void> {
     const token = core.getInput('github-token', {required: true})
 
     const summary: k6Summary = JSON.parse(
-      fs.readFileSync(filename).toString()
+      fs
+        .readFileSync(filename)
+        .toString()
+        .replace(/p\(90\)/g, 'p90')
+        .replace(/p\(95\)/g, 'p95')
     ) as k6Summary
 
     const reportService: ReportService = new ReportService(token, baseUrl)

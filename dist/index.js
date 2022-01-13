@@ -44,7 +44,11 @@ function run() {
             const filename = core.getInput('filename', { required: true });
             const baseUrl = core.getInput('base-url', { required: true });
             const token = core.getInput('github-token', { required: true });
-            const summary = JSON.parse(fs.readFileSync(filename).toString());
+            const summary = JSON.parse(fs
+                .readFileSync(filename)
+                .toString()
+                .replace(/p\(90\)/g, 'p90')
+                .replace(/p\(95\)/g, 'p95'));
             const reportService = new report_service_1.ReportService(token, baseUrl);
             const htmlUrl = yield reportService.create(summary);
             core.notice(htmlUrl, {
@@ -83,6 +87,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ReportService = void 0;
 const github_1 = __nccwpck_require__(5438);
 const pretty_bytes_1 = __importDefault(__nccwpck_require__(5168));
+const pretty_ms_1 = __importDefault(__nccwpck_require__(1127));
 class ReportService {
     constructor(token, baseUrl) {
         this.client = (0, github_1.getOctokit)(token);
@@ -93,7 +98,7 @@ class ReportService {
             return (yield this.client.rest.checks.create({
                 owner: github_1.context.repo.owner,
                 repo: github_1.context.repo.repo,
-                name: `Load Test Report (${this.baseUrl})`,
+                name: `Load Test Report (${new Date().toISOString()})`,
                 head_sha: github_1.context.sha,
                 conclusion: 'success',
                 output: {
@@ -112,8 +117,8 @@ class ReportService {
         return `
 Active Virtual Users Simulated: ${summary.metrics.vus.value}
 Iterations (aggregate number of times the script was executed): ${summary.metrics.iterations.count}
-Data Sent: ${(0, pretty_bytes_1.default)(summary.metrics.data_sent.count)} (${(0, pretty_bytes_1.default)(summary.metrics.data_sent.rate)}/s)}
-Data Received: ${(0, pretty_bytes_1.default)(summary.metrics.data_received.count)} (${(0, pretty_bytes_1.default)(summary.metrics.data_received.rate)}/s)}
+Data Sent: ${(0, pretty_bytes_1.default)(summary.metrics.data_sent.count)} (${(0, pretty_bytes_1.default)(summary.metrics.data_sent.rate)}/s)
+Data Received: ${(0, pretty_bytes_1.default)(summary.metrics.data_received.count)} (${(0, pretty_bytes_1.default)(summary.metrics.data_received.rate)}/s)
         `;
     }
     generateReport(summary) {
@@ -130,8 +135,13 @@ ${this.generateTrendRow('Time Spent Blocked (waiting for TCP connection slot)', 
 ${this.generateTrendRow('Time Spent Connecting (establishing TCP connection to host)', summary.metrics.http_req_connecting)}
         `;
     }
+    formatMs(input) {
+        return input > 0
+            ? (0, pretty_ms_1.default)(input)
+            : (0, pretty_ms_1.default)(input, { formatSubMilliseconds: true });
+    }
     generateTrendRow(name, trend) {
-        return `| ${name} | ${trend.avg} | ${trend.min} | ${trend.med} | ${trend.max} | ${trend.p90} | ${trend.p95} |`;
+        return `| ${name} | ${this.formatMs(trend.avg)} | ${this.formatMs(trend.min)} | ${this.formatMs(trend.med)} | ${this.formatMs(trend.max)} | ${this.formatMs(trend.p90)} | ${this.formatMs(trend.p95)} |`;
     }
 }
 exports.ReportService = ReportService;
@@ -8065,6 +8075,32 @@ function onceStrict (fn) {
 
 /***/ }),
 
+/***/ 7816:
+/***/ ((module) => {
+
+"use strict";
+
+module.exports = milliseconds => {
+	if (typeof milliseconds !== 'number') {
+		throw new TypeError('Expected a number');
+	}
+
+	const roundTowardsZero = milliseconds > 0 ? Math.floor : Math.ceil;
+
+	return {
+		days: roundTowardsZero(milliseconds / 86400000),
+		hours: roundTowardsZero(milliseconds / 3600000) % 24,
+		minutes: roundTowardsZero(milliseconds / 60000) % 60,
+		seconds: roundTowardsZero(milliseconds / 1000) % 60,
+		milliseconds: roundTowardsZero(milliseconds) % 1000,
+		microseconds: roundTowardsZero(milliseconds * 1000) % 1000,
+		nanoseconds: roundTowardsZero(milliseconds * 1e6) % 1000
+	};
+};
+
+
+/***/ }),
+
 /***/ 5168:
 /***/ ((module) => {
 
@@ -8186,6 +8222,139 @@ module.exports = (number, options) => {
 	const unit = UNITS[exponent];
 
 	return prefix + numberString + ' ' + unit;
+};
+
+
+/***/ }),
+
+/***/ 1127:
+/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
+
+"use strict";
+
+const parseMilliseconds = __nccwpck_require__(7816);
+
+const pluralize = (word, count) => count === 1 ? word : `${word}s`;
+
+const SECOND_ROUNDING_EPSILON = 0.0000001;
+
+module.exports = (milliseconds, options = {}) => {
+	if (!Number.isFinite(milliseconds)) {
+		throw new TypeError('Expected a finite number');
+	}
+
+	if (options.colonNotation) {
+		options.compact = false;
+		options.formatSubMilliseconds = false;
+		options.separateMilliseconds = false;
+		options.verbose = false;
+	}
+
+	if (options.compact) {
+		options.secondsDecimalDigits = 0;
+		options.millisecondsDecimalDigits = 0;
+	}
+
+	const result = [];
+
+	const floorDecimals = (value, decimalDigits) => {
+		const flooredInterimValue = Math.floor((value * (10 ** decimalDigits)) + SECOND_ROUNDING_EPSILON);
+		const flooredValue = Math.round(flooredInterimValue) / (10 ** decimalDigits);
+		return flooredValue.toFixed(decimalDigits);
+	};
+
+	const add = (value, long, short, valueString) => {
+		if ((result.length === 0 || !options.colonNotation) && value === 0 && !(options.colonNotation && short === 'm')) {
+			return;
+		}
+
+		valueString = (valueString || value || '0').toString();
+		let prefix;
+		let suffix;
+		if (options.colonNotation) {
+			prefix = result.length > 0 ? ':' : '';
+			suffix = '';
+			const wholeDigits = valueString.includes('.') ? valueString.split('.')[0].length : valueString.length;
+			const minLength = result.length > 0 ? 2 : 1;
+			valueString = '0'.repeat(Math.max(0, minLength - wholeDigits)) + valueString;
+		} else {
+			prefix = '';
+			suffix = options.verbose ? ' ' + pluralize(long, value) : short;
+		}
+
+		result.push(prefix + valueString + suffix);
+	};
+
+	const parsed = parseMilliseconds(milliseconds);
+
+	add(Math.trunc(parsed.days / 365), 'year', 'y');
+	add(parsed.days % 365, 'day', 'd');
+	add(parsed.hours, 'hour', 'h');
+	add(parsed.minutes, 'minute', 'm');
+
+	if (
+		options.separateMilliseconds ||
+		options.formatSubMilliseconds ||
+		(!options.colonNotation && milliseconds < 1000)
+	) {
+		add(parsed.seconds, 'second', 's');
+		if (options.formatSubMilliseconds) {
+			add(parsed.milliseconds, 'millisecond', 'ms');
+			add(parsed.microseconds, 'microsecond', 'µs');
+			add(parsed.nanoseconds, 'nanosecond', 'ns');
+		} else {
+			const millisecondsAndBelow =
+				parsed.milliseconds +
+				(parsed.microseconds / 1000) +
+				(parsed.nanoseconds / 1e6);
+
+			const millisecondsDecimalDigits =
+				typeof options.millisecondsDecimalDigits === 'number' ?
+					options.millisecondsDecimalDigits :
+					0;
+
+			const roundedMiliseconds = millisecondsAndBelow >= 1 ?
+				Math.round(millisecondsAndBelow) :
+				Math.ceil(millisecondsAndBelow);
+
+			const millisecondsString = millisecondsDecimalDigits ?
+				millisecondsAndBelow.toFixed(millisecondsDecimalDigits) :
+				roundedMiliseconds;
+
+			add(
+				Number.parseFloat(millisecondsString, 10),
+				'millisecond',
+				'ms',
+				millisecondsString
+			);
+		}
+	} else {
+		const seconds = (milliseconds / 1000) % 60;
+		const secondsDecimalDigits =
+			typeof options.secondsDecimalDigits === 'number' ?
+				options.secondsDecimalDigits :
+				1;
+		const secondsFixed = floorDecimals(seconds, secondsDecimalDigits);
+		const secondsString = options.keepDecimalsOnWholeSeconds ?
+			secondsFixed :
+			secondsFixed.replace(/\.0+$/, '');
+		add(Number.parseFloat(secondsString, 10), 'second', 's', secondsString);
+	}
+
+	if (result.length === 0) {
+		return '0' + (options.verbose ? ' milliseconds' : 'ms');
+	}
+
+	if (options.compact) {
+		return result[0];
+	}
+
+	if (typeof options.unitCount === 'number') {
+		const separator = options.colonNotation ? '' : ' ';
+		return result.slice(0, Math.max(options.unitCount, 1)).join(separator);
+	}
+
+	return options.colonNotation ? result.join('') : result.join(' ');
 };
 
 

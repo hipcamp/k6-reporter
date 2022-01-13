@@ -26,11 +26,13 @@
   "dependencies": {
     "@actions/core": "^1.6.0",
     "@actions/github": "^5.0.0",
-    "pretty-bytes": "^5.6.0"
+    "pretty-bytes": "^5.6.0",
+    "pretty-ms": "^7.0.1"
   },
   "devDependencies": {
     "@types/node": "^16.10.5",
     "@types/pretty-bytes": "^5.2.0",
+    "@types/pretty-ms": "^5.0.1",
     "@typescript-eslint/parser": "^5.8.1",
     "@vercel/ncc": "^0.31.1",
     "eslint": "^7.32.0",

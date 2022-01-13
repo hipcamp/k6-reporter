@@ -3,6 +3,7 @@ import {Trend, k6Summary} from './k6-summary'
 import {context, getOctokit} from '@actions/github'
 import {GitHub} from '@actions/github/lib/utils'
 import prettyBytes from 'pretty-bytes'
+import prettyMs from 'pretty-ms'
 
 export class ReportService {
   private readonly client: InstanceType<typeof GitHub>
@@ -18,7 +19,7 @@ export class ReportService {
       await this.client.rest.checks.create({
         owner: context.repo.owner,
         repo: context.repo.repo,
-        name: `Load Test Report (${this.baseUrl})`,
+        name: `Load Test Report (${new Date().toISOString()})`,
         head_sha: context.sha,
         conclusion: 'success',
         output: {
@@ -43,10 +44,10 @@ Iterations (aggregate number of times the script was executed): ${
     }
 Data Sent: ${prettyBytes(summary.metrics.data_sent.count)} (${prettyBytes(
       summary.metrics.data_sent.rate
-    )}/s)}
+    )}/s)
 Data Received: ${prettyBytes(
       summary.metrics.data_received.count
-    )} (${prettyBytes(summary.metrics.data_received.rate)}/s)}
+    )} (${prettyBytes(summary.metrics.data_received.rate)}/s)
         `
   }
 
@@ -75,7 +76,17 @@ ${this.generateTrendRow(
         `
   }
 
+  private formatMs(input: number): string {
+    return input > 0
+      ? prettyMs(input)
+      : prettyMs(input, {formatSubMilliseconds: true})
+  }
+
   private generateTrendRow(name: string, trend: Trend): string {
-    return `| ${name} | ${trend.avg} | ${trend.min} | ${trend.med} | ${trend.max} | ${trend.p90} | ${trend.p95} |`
+    return `| ${name} | ${this.formatMs(trend.avg)} | ${this.formatMs(
+      trend.min
+    )} | ${this.formatMs(trend.med)} | ${this.formatMs(
+      trend.max
+    )} | ${this.formatMs(trend.p90)} | ${this.formatMs(trend.p95)} |`
   }
 }
