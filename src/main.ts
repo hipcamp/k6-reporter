@@ -5,8 +5,8 @@ import {k6Summary} from './k6-summary'
 
 async function run(): Promise<void> {
   try {
-    const filename: string = core.getInput('file')
-    const baseUrl: string = core.getInput('base-url')
+    const filename: string = core.getInput('filename', {required: true})
+    const baseUrl: string = core.getInput('base-url', {required: true})
     const token = core.getInput('github-token', {required: true})
 
     const summary: k6Summary = JSON.parse(

@@ -41,8 +41,8 @@ const report_service_1 = __nccwpck_require__(7218);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const filename = core.getInput('file');
-            const baseUrl = core.getInput('base-url');
+            const filename = core.getInput('filename', { required: true });
+            const baseUrl = core.getInput('base-url', { required: true });
             const token = core.getInput('github-token', { required: true });
             const summary = JSON.parse(fs.readFileSync(filename).toString());
             const reportService = new report_service_1.ReportService(token, baseUrl);
