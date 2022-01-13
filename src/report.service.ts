@@ -1,5 +1,5 @@
 /* eslint-disable filenames/match-regex */
-import {Trend, k6Summary} from './k6-summary'
+import {Counter, Trend, k6Summary} from './k6-summary'
 import {context, getOctokit} from '@actions/github'
 import {GitHub} from '@actions/github/lib/utils'
 import prettyBytes from 'pretty-bytes'
@@ -61,6 +61,12 @@ Data Received: ${prettyBytes(
 | Passing Request Rate | ${this.round(
       summary.metrics.http_req_failed.value * 100
     )}% (${summary.metrics.http_req_failed.fails} failed requests) |
+${Object.keys(summary.metrics)
+  .filter(x => x.startsWith('http_status_'))
+  .map((x: string) => {
+    return this.generateHttpStatusRow(x, Object(summary.metrics)[x] as Counter)
+  })
+  .join('\n')}
 
 ## HTTP Connection Metrics
 | Metric | Average | Minimum | Median | Maximum | 90th Percentile | 95th Percentile |
@@ -100,6 +106,10 @@ ${this.generateTrendRow(
     return input > 0
       ? prettyMs(input)
       : prettyMs(input, {formatSubMilliseconds: true})
+  }
+
+  private generateHttpStatusRow(key: string, counter: Counter): string {
+    return `| Status ${key.replace('http_status_', '')} | ${counter.count} |`
   }
 
   private generateTrendRow(name: string, trend: Trend): string {
