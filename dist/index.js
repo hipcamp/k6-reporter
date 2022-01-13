@@ -243,7 +243,7 @@ ${this.generateResponseSummaries(points)}
         }
         return `
 
-## HTTP ${status} (Count ${points.length})
+## HTTP ${status}
 
 | Scenario | URL | Occurances |
 | -------- | --- | ---------- |
