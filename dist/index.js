@@ -47,7 +47,9 @@ function run() {
             const summary = JSON.parse(fs.readFileSync(filename).toString());
             const reportService = new report_service_1.ReportService(token, baseUrl);
             const htmlUrl = yield reportService.create(summary);
-            core.info(htmlUrl);
+            core.notice(htmlUrl, {
+                title: 'View k6 Report'
+            });
         }
         catch (error) {
             if (error instanceof Error)
@@ -91,7 +93,7 @@ class ReportService {
             return (yield this.client.rest.checks.create({
                 owner: github_1.context.repo.owner,
                 repo: github_1.context.repo.repo,
-                name: 'Load Test Report',
+                name: `Load Test Report (${this.baseUrl})`,
                 head_sha: github_1.context.sha,
                 conclusion: 'success',
                 output: {

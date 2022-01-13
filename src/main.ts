@@ -15,7 +15,9 @@ async function run(): Promise<void> {
 
     const reportService: ReportService = new ReportService(token, baseUrl)
     const htmlUrl = await reportService.create(summary)
-    core.info(htmlUrl)
+    core.notice(htmlUrl, {
+      title: 'View k6 Report'
+    })
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }

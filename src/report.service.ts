@@ -18,7 +18,7 @@ export class ReportService {
       await this.client.rest.checks.create({
         owner: context.repo.owner,
         repo: context.repo.repo,
-        name: 'Load Test Report',
+        name: `Load Test Report (${this.baseUrl})`,
         head_sha: context.sha,
         conclusion: 'success',
         output: {
