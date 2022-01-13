@@ -94,9 +94,8 @@ function run() {
             const token = core.getInput('github-token', { required: true });
             const summary = getk6Summary(filename);
             const points = yield getk6Points(responseFilename);
-            core.info(`Run has ${points.length} Points`);
             const reportService = new report_service_1.ReportService(token, baseUrl);
-            const htmlUrl = yield reportService.create(summary);
+            const htmlUrl = yield reportService.create(summary, points);
             core.notice(htmlUrl, {
                 title: 'View k6 Report'
             });
@@ -139,7 +138,7 @@ class ReportService {
         this.client = (0, github_1.getOctokit)(token);
         this.baseUrl = baseUrl;
     }
-    create(summary) {
+    create(summary, points) {
         return __awaiter(this, void 0, void 0, function* () {
             return (yield this.client.rest.checks.create({
                 owner: github_1.context.repo.owner,
@@ -150,7 +149,7 @@ class ReportService {
                 output: {
                     title: this.baseUrl,
                     summary: this.generateSummary(summary),
-                    text: this.generateReport(summary)
+                    text: this.generateReport(summary, points)
                 }
             })).data.html_url;
         });
@@ -167,12 +166,12 @@ Data Sent: ${(0, pretty_bytes_1.default)(summary.metrics.data_sent.count)} (${(0
 Data Received: ${(0, pretty_bytes_1.default)(summary.metrics.data_received.count)} (${(0, pretty_bytes_1.default)(summary.metrics.data_received.rate)}/s)
         `;
     }
-    generateReport(summary) {
+    generateReport(summary, points) {
         return `
 | Metric | Value |
 | --- | --- |
 | Total HTTP Requests  | ${summary.metrics.http_reqs.count} (${this.round(summary.metrics.http_reqs.rate)} request/s) |
-| Passing Request Rate | ${this.round(summary.metrics.http_req_failed.value * 100)}% (${summary.metrics.http_req_failed.fails} failed requests) |
+| Passing Request Rate | ${this.round((1 - summary.metrics.http_req_failed.value) * 100)}% (${summary.metrics.http_req_failed.passes} failed requests) |
 ${this.generateHttpStatusRows(summary)}
 
 ## HTTP Connection Metrics
@@ -185,6 +184,10 @@ ${this.generateTrendRow('Request Duration (sending + waiting + receiving)', summ
 ${this.generateTrendRow('Sending (time spent sending data to remote host)', summary.metrics.http_req_sending)}
 ${this.generateTrendRow('Waiting (time spent waiting for response from remote host)', summary.metrics.http_req_waiting)}
 ${this.generateTrendRow('Receiving (time spent receiving response data from remote host)', summary.metrics.http_req_receiving)}
+
+# HTTP Status Summaries
+
+${this.generateResponseSummaries(points)}
         `;
     }
     generateHttpStatusRows(summary) {
@@ -210,6 +213,30 @@ ${this.generateTrendRow('Receiving (time spent receiving response data from remo
     }
     generateTrendRow(name, trend) {
         return `| ${name} | ${this.formatMs(trend.avg)} | ${this.formatMs(trend.min)} | ${this.formatMs(trend.med)} | ${this.formatMs(trend.max)} | ${this.formatMs(trend.p90)} | ${this.formatMs(trend.p95)} |`;
+    }
+    generateResponseSummaries(points) {
+        var _a;
+        const statusMap = new Map();
+        for (const point of points) {
+            const key = +point.data.tags.status;
+            if (!statusMap.has(key)) {
+                statusMap.set(key, []);
+            }
+            (_a = statusMap.get(key)) === null || _a === void 0 ? void 0 : _a.push(point);
+        }
+        const keys = Array.from(statusMap.keys());
+        // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
+        keys.sort();
+        return keys
+            .map(x => this.generateResponseSummary(x, statusMap.get(x) || []))
+            .join('\n\n');
+    }
+    generateResponseSummary(status, points) {
+        return `
+## HTTP ${status}
+
+Total Points: ${points.length}
+    `;
     }
 }
 exports.ReportService = ReportService;

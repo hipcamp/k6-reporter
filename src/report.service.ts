@@ -2,6 +2,7 @@
 import {Counter, Trend, k6Summary} from './k6-summary'
 import {context, getOctokit} from '@actions/github'
 import {GitHub} from '@actions/github/lib/utils'
+import {k6Point} from './k6-point'
 import prettyBytes from 'pretty-bytes'
 import prettyMs from 'pretty-ms'
 
@@ -14,7 +15,7 @@ export class ReportService {
     this.baseUrl = baseUrl
   }
 
-  async create(summary: k6Summary): Promise<string> {
+  async create(summary: k6Summary, points: k6Point[]): Promise<string> {
     return (
       await this.client.rest.checks.create({
         owner: context.repo.owner,
@@ -25,7 +26,7 @@ export class ReportService {
         output: {
           title: this.baseUrl,
           summary: this.generateSummary(summary),
-          text: this.generateReport(summary)
+          text: this.generateReport(summary, points)
         }
       })
     ).data.html_url as string
@@ -51,7 +52,7 @@ Data Received: ${prettyBytes(
         `
   }
 
-  private generateReport(summary: k6Summary): string {
+  private generateReport(summary: k6Summary, points: k6Point[]): string {
     return `
 | Metric | Value |
 | --- | --- |
@@ -59,8 +60,8 @@ Data Received: ${prettyBytes(
       summary.metrics.http_reqs.rate
     )} request/s) |
 | Passing Request Rate | ${this.round(
-      summary.metrics.http_req_failed.value * 100
-    )}% (${summary.metrics.http_req_failed.fails} failed requests) |
+      (1 - summary.metrics.http_req_failed.value) * 100
+    )}% (${summary.metrics.http_req_failed.passes} failed requests) |
 ${this.generateHttpStatusRows(summary)}
 
 ## HTTP Connection Metrics
@@ -94,6 +95,10 @@ ${this.generateTrendRow(
   'Receiving (time spent receiving response data from remote host)',
   summary.metrics.http_req_receiving
 )}
+
+# HTTP Status Summaries
+
+${this.generateResponseSummaries(points)}
         `
   }
 
@@ -136,5 +141,33 @@ ${this.generateTrendRow(
     )} | ${this.formatMs(trend.med)} | ${this.formatMs(
       trend.max
     )} | ${this.formatMs(trend.p90)} | ${this.formatMs(trend.p95)} |`
+  }
+
+  private generateResponseSummaries(points: k6Point[]): string {
+    const statusMap: Map<number, k6Point[]> = new Map()
+    for (const point of points) {
+      const key: number = +point.data.tags.status
+      if (!statusMap.has(key)) {
+        statusMap.set(key, [])
+      }
+
+      statusMap.get(key)?.push(point)
+    }
+
+    const keys: number[] = Array.from(statusMap.keys())
+    // eslint-disable-next-line @typescript-eslint/require-array-sort-compare
+    keys.sort()
+
+    return keys
+      .map(x => this.generateResponseSummary(x, statusMap.get(x) || []))
+      .join('\n\n')
+  }
+
+  private generateResponseSummary(status: number, points: k6Point[]): string {
+    return `
+## HTTP ${status}
+
+Total Points: ${points.length}
+    `
   }
 }

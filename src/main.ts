@@ -48,10 +48,9 @@ async function run(): Promise<void> {
 
     const summary: k6Summary = getk6Summary(filename)
     const points: k6Point[] = await getk6Points(responseFilename)
-    core.info(`Run has ${points.length} Points`)
 
     const reportService: ReportService = new ReportService(token, baseUrl)
-    const htmlUrl = await reportService.create(summary)
+    const htmlUrl = await reportService.create(summary, points)
     core.notice(htmlUrl, {
       title: 'View k6 Report'
     })
