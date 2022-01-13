@@ -73,6 +73,26 @@ ${this.generateTrendRow(
   'Time Spent Connecting (establishing TCP connection to host)',
   summary.metrics.http_req_connecting
 )}
+${this.generateTrendRow(
+  'TLS Handshake',
+  summary.metrics.http_req_tls_handshaking
+)}
+${this.generateTrendRow(
+  'Request Duration (sending + waiting + receiving)',
+  summary.metrics.http_req_duration
+)}
+${this.generateTrendRow(
+  'Sending (time spent sending data to remote host)',
+  summary.metrics.http_req_sending
+)}
+${this.generateTrendRow(
+  'Waiting (time spent waiting for response from remote host)',
+  summary.metrics.http_req_waiting
+)}
+${this.generateTrendRow(
+  'Receiving (time spent receiving response data from remote host)',
+  summary.metrics.http_req_receiving
+)}
         `
   }
 
