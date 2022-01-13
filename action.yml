@@ -5,6 +5,9 @@ inputs:
   filename:
     required: true
     description: 'report file from k6 run'
+  response-filename:
+    required: true
+    description: 'response objects output file'
   base-url:
     required: true
     description: 'the url supplied to k6 for testing'

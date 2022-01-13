@@ -34,21 +34,67 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __asyncValues = (this && this.__asyncValues) || function (o) {
+    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
+    var m = o[Symbol.asyncIterator], i;
+    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
+    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
+    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const fs = __importStar(__nccwpck_require__(5747));
+const readline = __importStar(__nccwpck_require__(1058));
 const report_service_1 = __nccwpck_require__(7218);
+function getk6Summary(filename) {
+    return JSON.parse(fs
+        .readFileSync(filename)
+        .toString()
+        .replace(/p\(90\)/g, 'p90')
+        .replace(/p\(95\)/g, 'p95'));
+}
+function getk6Points(filename) {
+    var e_1, _a;
+    return __awaiter(this, void 0, void 0, function* () {
+        const fileStream = fs.createReadStream(filename);
+        const rl = readline.createInterface({
+            input: fileStream,
+            crlfDelay: Infinity
+        });
+        const points = [];
+        try {
+            for (var rl_1 = __asyncValues(rl), rl_1_1; rl_1_1 = yield rl_1.next(), !rl_1_1.done;) {
+                const line = rl_1_1.value;
+                if (line.includes('"type":"Point"')) {
+                    const point = JSON.parse(line);
+                    if (point.metric === 'http_reqs') {
+                        points.push(point);
+                    }
+                }
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (rl_1_1 && !rl_1_1.done && (_a = rl_1.return)) yield _a.call(rl_1);
+            }
+            finally { if (e_1) throw e_1.error; }
+        }
+        return points;
+    });
+}
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const filename = core.getInput('filename', { required: true });
+            const responseFilename = core.getInput('response-filename', {
+                required: true
+            });
             const baseUrl = core.getInput('base-url', { required: true });
             const token = core.getInput('github-token', { required: true });
-            const summary = JSON.parse(fs
-                .readFileSync(filename)
-                .toString()
-                .replace(/p\(90\)/g, 'p90')
-                .replace(/p\(95\)/g, 'p95'));
+            const summary = getk6Summary(filename);
+            const points = yield getk6Points(responseFilename);
+            core.info(`Run has ${points.length} Points`);
             const reportService = new report_service_1.ReportService(token, baseUrl);
             const htmlUrl = yield reportService.create(summary);
             core.notice(htmlUrl, {
@@ -8813,6 +8859,14 @@ module.exports = require("path");
 
 "use strict";
 module.exports = require("punycode");
+
+/***/ }),
+
+/***/ 1058:
+/***/ ((module) => {
+
+"use strict";
+module.exports = require("readline");
 
 /***/ }),
 
