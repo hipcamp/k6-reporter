@@ -13,19 +13,21 @@ export class ReportService {
     this.baseUrl = baseUrl
   }
 
-  async create(summary: k6Summary): Promise<void> {
-    await this.client.rest.checks.create({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      name: 'Load Test Report',
-      head_sha: context.sha,
-      conclusion: 'success',
-      output: {
-        title: this.baseUrl,
-        summary: this.generateSummary(summary),
-        text: this.generateReport(summary)
-      }
-    })
+  async create(summary: k6Summary): Promise<string> {
+    return (
+      await this.client.rest.checks.create({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        name: 'Load Test Report',
+        head_sha: context.sha,
+        conclusion: 'success',
+        output: {
+          title: this.baseUrl,
+          summary: this.generateSummary(summary),
+          text: this.generateReport(summary)
+        }
+      })
+    ).data.html_url as string
   }
 
   private round(input: number, decimalPlaces = 2): number {
@@ -35,41 +37,41 @@ export class ReportService {
 
   private generateSummary(summary: k6Summary): string {
     return `
-    Active Virtual Users Simulated: ${summary.metrics.vus.value}
-    Iterations (aggregate number of times the script was executed): ${
+Active Virtual Users Simulated: ${summary.metrics.vus.value}
+Iterations (aggregate number of times the script was executed): ${
       summary.metrics.iterations.count
     }
-    Data Sent: ${prettyBytes(summary.metrics.data_sent.count)} (${prettyBytes(
+Data Sent: ${prettyBytes(summary.metrics.data_sent.count)} (${prettyBytes(
       summary.metrics.data_sent.rate
-    )})}
-    Data Received: ${prettyBytes(
+    )}/s)}
+Data Received: ${prettyBytes(
       summary.metrics.data_received.count
-    )} (${prettyBytes(summary.metrics.data_received.rate)})}
+    )} (${prettyBytes(summary.metrics.data_received.rate)}/s)}
         `
   }
 
   private generateReport(summary: k6Summary): string {
     return `
-    | Metric | Value |
-    | --- | --- |
-    | Total HTTP Requests  | ${summary.metrics.http_reqs.count} (${this.round(
+| Metric | Value |
+| --- | --- |
+| Total HTTP Requests  | ${summary.metrics.http_reqs.count} (${this.round(
       summary.metrics.http_reqs.rate
     )} request/s) |
-    | Passing Request Rate | ${this.round(
+| Passing Request Rate | ${this.round(
       summary.metrics.http_req_failed.value * 100
     )}% (${summary.metrics.http_req_failed.fails} failed requests) |
 
-    ## HTTP Connection Metrics
-    | Metric | Average | Minimum | Median | Maximum | 90th Percentile | 95th Percentile |
-    | ------ | ------- | ------- | ------ | ------- | --------------- | --------------- |
-    ${this.generateTrendRow(
-      'Time Spent Blocked (waiting for TCP connection slot)',
-      summary.metrics.http_req_blocked
-    )}
-    ${this.generateTrendRow(
-      'Time Spent Connecting (establishing TCP connection to host)',
-      summary.metrics.http_req_connecting
-    )}
+## HTTP Connection Metrics
+| Metric | Average | Minimum | Median | Maximum | 90th Percentile | 95th Percentile |
+| ------ | ------- | ------- | ------ | ------- | --------------- | --------------- |
+${this.generateTrendRow(
+  'Time Spent Blocked (waiting for TCP connection slot)',
+  summary.metrics.http_req_blocked
+)}
+${this.generateTrendRow(
+  'Time Spent Connecting (establishing TCP connection to host)',
+  summary.metrics.http_req_connecting
+)}
         `
   }
 

@@ -46,7 +46,8 @@ function run() {
             const token = core.getInput('github-token', { required: true });
             const summary = JSON.parse(fs.readFileSync(filename).toString());
             const reportService = new report_service_1.ReportService(token, baseUrl);
-            yield reportService.create(summary);
+            const htmlUrl = yield reportService.create(summary);
+            core.info(htmlUrl);
         }
         catch (error) {
             if (error instanceof Error)
@@ -87,7 +88,7 @@ class ReportService {
     }
     create(summary) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.client.rest.checks.create({
+            return (yield this.client.rest.checks.create({
                 owner: github_1.context.repo.owner,
                 repo: github_1.context.repo.repo,
                 name: 'Load Test Report',
@@ -98,7 +99,7 @@ class ReportService {
                     summary: this.generateSummary(summary),
                     text: this.generateReport(summary)
                 }
-            });
+            })).data.html_url;
         });
     }
     round(input, decimalPlaces = 2) {
@@ -107,24 +108,24 @@ class ReportService {
     }
     generateSummary(summary) {
         return `
-    Active Virtual Users Simulated: ${summary.metrics.vus.value}
-    Iterations (aggregate number of times the script was executed): ${summary.metrics.iterations.count}
-    Data Sent: ${(0, pretty_bytes_1.default)(summary.metrics.data_sent.count)} (${(0, pretty_bytes_1.default)(summary.metrics.data_sent.rate)})}
-    Data Received: ${(0, pretty_bytes_1.default)(summary.metrics.data_received.count)} (${(0, pretty_bytes_1.default)(summary.metrics.data_received.rate)})}
+Active Virtual Users Simulated: ${summary.metrics.vus.value}
+Iterations (aggregate number of times the script was executed): ${summary.metrics.iterations.count}
+Data Sent: ${(0, pretty_bytes_1.default)(summary.metrics.data_sent.count)} (${(0, pretty_bytes_1.default)(summary.metrics.data_sent.rate)}/s)}
+Data Received: ${(0, pretty_bytes_1.default)(summary.metrics.data_received.count)} (${(0, pretty_bytes_1.default)(summary.metrics.data_received.rate)}/s)}
         `;
     }
     generateReport(summary) {
         return `
-    | Metric | Value |
-    | --- | --- |
-    | Total HTTP Requests  | ${summary.metrics.http_reqs.count} (${this.round(summary.metrics.http_reqs.rate)} request/s) |
-    | Passing Request Rate | ${this.round(summary.metrics.http_req_failed.value * 100)}% (${summary.metrics.http_req_failed.fails} failed requests) |
+| Metric | Value |
+| --- | --- |
+| Total HTTP Requests  | ${summary.metrics.http_reqs.count} (${this.round(summary.metrics.http_reqs.rate)} request/s) |
+| Passing Request Rate | ${this.round(summary.metrics.http_req_failed.value * 100)}% (${summary.metrics.http_req_failed.fails} failed requests) |
 
-    ## HTTP Connection Metrics
-    | Metric | Average | Minimum | Median | Maximum | 90th Percentile | 95th Percentile |
-    | ------ | ------- | ------- | ------ | ------- | --------------- | --------------- |
-    ${this.generateTrendRow('Time Spent Blocked (waiting for TCP connection slot)', summary.metrics.http_req_blocked)}
-    ${this.generateTrendRow('Time Spent Connecting (establishing TCP connection to host)', summary.metrics.http_req_connecting)}
+## HTTP Connection Metrics
+| Metric | Average | Minimum | Median | Maximum | 90th Percentile | 95th Percentile |
+| ------ | ------- | ------- | ------ | ------- | --------------- | --------------- |
+${this.generateTrendRow('Time Spent Blocked (waiting for TCP connection slot)', summary.metrics.http_req_blocked)}
+${this.generateTrendRow('Time Spent Connecting (establishing TCP connection to host)', summary.metrics.http_req_connecting)}
         `;
     }
     generateTrendRow(name, trend) {
