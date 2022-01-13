@@ -1,11 +1,17 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'k6-reporter'
+description: 'GitHub Actions k6 Report Generation for k6'
+author: 'hipcamp'
 inputs:
-  milliseconds: # change this
+  filename:
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    description: 'report file from k6 run'
+  base-url:
+    required: true
+    description: 'the url supplied to k6 for testing'
+  github-token:
+    description: The GitHub token used to create an authenticated client
+    default: ${{ github.token }}
+    required: false
 runs:
   using: 'node12'
   main: 'dist/index.js'
