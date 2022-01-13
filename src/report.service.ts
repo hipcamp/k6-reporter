@@ -61,12 +61,7 @@ Data Received: ${prettyBytes(
 | Passing Request Rate | ${this.round(
       summary.metrics.http_req_failed.value * 100
     )}% (${summary.metrics.http_req_failed.fails} failed requests) |
-${Object.keys(summary.metrics)
-  .filter(x => x.startsWith('http_status_'))
-  .map((x: string) => {
-    return this.generateHttpStatusRow(x, Object(summary.metrics)[x] as Counter)
-  })
-  .join('\n')}
+${this.generateHttpStatusRows(summary)}
 
 ## HTTP Connection Metrics
 | Metric | Average | Minimum | Median | Maximum | 90th Percentile | 95th Percentile |
@@ -102,6 +97,27 @@ ${this.generateTrendRow(
         `
   }
 
+  private generateHttpStatusRows(summary: k6Summary): string {
+    const keys: string[] = Object.keys(summary.metrics).filter(x =>
+      x.startsWith('http_status_')
+    )
+    const sortedKeys: string[] = keys.sort((a: string, b: string) => {
+      const key_a: number = +a.replace('http_status_', '')
+      const key_b: number = +b.replace('http_status_', '')
+
+      return key_a < key_b ? -1 : 1
+    })
+
+    return sortedKeys
+      .map((x: string) => {
+        return this.generateHttpStatusRow(
+          x,
+          Object(summary.metrics)[x] as Counter
+        )
+      })
+      .join('\n')
+  }
+
   private formatMs(input: number): string {
     return input > 0
       ? prettyMs(input)
@@ -109,7 +125,9 @@ ${this.generateTrendRow(
   }
 
   private generateHttpStatusRow(key: string, counter: Counter): string {
-    return `| Status ${key.replace('http_status_', '')} | ${counter.count} |`
+    return `| HTTP Status ${key.replace('http_status_', '')} | ${
+      counter.count
+    } |`
   }
 
   private generateTrendRow(name: string, trend: Trend): string {

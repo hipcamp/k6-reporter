@@ -127,12 +127,7 @@ Data Received: ${(0, pretty_bytes_1.default)(summary.metrics.data_received.count
 | --- | --- |
 | Total HTTP Requests  | ${summary.metrics.http_reqs.count} (${this.round(summary.metrics.http_reqs.rate)} request/s) |
 | Passing Request Rate | ${this.round(summary.metrics.http_req_failed.value * 100)}% (${summary.metrics.http_req_failed.fails} failed requests) |
-${Object.keys(summary.metrics)
-            .filter(x => x.startsWith('http_status_'))
-            .map((x) => {
-            return this.generateHttpStatusRow(x, Object(summary.metrics)[x]);
-        })
-            .join('\n')}
+${this.generateHttpStatusRows(summary)}
 
 ## HTTP Connection Metrics
 | Metric | Average | Minimum | Median | Maximum | 90th Percentile | 95th Percentile |
@@ -146,13 +141,26 @@ ${this.generateTrendRow('Waiting (time spent waiting for response from remote ho
 ${this.generateTrendRow('Receiving (time spent receiving response data from remote host)', summary.metrics.http_req_receiving)}
         `;
     }
+    generateHttpStatusRows(summary) {
+        const keys = Object.keys(summary.metrics).filter(x => x.startsWith('http_status_'));
+        const sortedKeys = keys.sort((a, b) => {
+            const key_a = +a.replace('http_status_', '');
+            const key_b = +b.replace('http_status_', '');
+            return key_a < key_b ? -1 : 1;
+        });
+        return sortedKeys
+            .map((x) => {
+            return this.generateHttpStatusRow(x, Object(summary.metrics)[x]);
+        })
+            .join('\n');
+    }
     formatMs(input) {
         return input > 0
             ? (0, pretty_ms_1.default)(input)
             : (0, pretty_ms_1.default)(input, { formatSubMilliseconds: true });
     }
     generateHttpStatusRow(key, counter) {
-        return `| Status ${key.replace('http_status_', '')} | ${counter.count} |`;
+        return `| HTTP Status ${key.replace('http_status_', '')} | ${counter.count} |`;
     }
     generateTrendRow(name, trend) {
         return `| ${name} | ${this.formatMs(trend.avg)} | ${this.formatMs(trend.min)} | ${this.formatMs(trend.med)} | ${this.formatMs(trend.max)} | ${this.formatMs(trend.p90)} | ${this.formatMs(trend.p95)} |`;
