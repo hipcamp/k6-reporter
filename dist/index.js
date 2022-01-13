@@ -232,10 +232,27 @@ ${this.generateResponseSummaries(points)}
             .join('\n\n');
     }
     generateResponseSummary(status, points) {
+        var _a;
+        const responseMap = new Map();
+        for (const point of points) {
+            const key = point.data.tags.url;
+            if (!responseMap.has(key)) {
+                responseMap.set(key, []);
+            }
+            (_a = responseMap.get(key)) === null || _a === void 0 ? void 0 : _a.push(point);
+        }
         return `
+
 ## HTTP ${status} (Count ${points.length})
 
-${points.map(x => x.data.tags.url).join('\n')}
+| Scenario | URL | Occurances |
+| -------- | --- | ---------- |
+${Array.from(responseMap.values())
+            .map((pointSet) => {
+            const uniquePoint = pointSet[0];
+            return `| ${uniquePoint.data.tags.scenario} | ${uniquePoint.data.tags.url} | ${pointSet.length} |`;
+        })
+            .join('\n')}
     `;
     }
 }

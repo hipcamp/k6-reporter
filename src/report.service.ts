@@ -164,10 +164,29 @@ ${this.generateResponseSummaries(points)}
   }
 
   private generateResponseSummary(status: number, points: k6Point[]): string {
+    const responseMap: Map<string, k6Point[]> = new Map()
+
+    for (const point of points) {
+      const key: string = point.data.tags.url
+      if (!responseMap.has(key)) {
+        responseMap.set(key, [])
+      }
+
+      responseMap.get(key)?.push(point)
+    }
+
     return `
+
 ## HTTP ${status} (Count ${points.length})
 
-${points.map(x => x.data.tags.url).join('\n')}
+| Scenario | URL | Occurances |
+| -------- | --- | ---------- |
+${Array.from(responseMap.values())
+  .map((pointSet: k6Point[]) => {
+    const uniquePoint: k6Point = pointSet[0]
+    return `| ${uniquePoint.data.tags.scenario} | ${uniquePoint.data.tags.url} | ${pointSet.length} |`
+  })
+  .join('\n')}
     `
   }
 }
