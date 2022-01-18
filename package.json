@@ -30,7 +30,7 @@
     "pretty-ms": "^7.0.1"
   },
   "devDependencies": {
-    "@types/node": "^16.10.5",
+    "@types/node": "^17.0.10",
     "@types/pretty-bytes": "^5.2.0",
     "@types/pretty-ms": "^5.0.1",
     "@typescript-eslint/parser": "^5.8.1",
