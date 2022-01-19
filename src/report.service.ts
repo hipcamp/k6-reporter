@@ -182,6 +182,9 @@ ${this.generateResponseSummaries(points)}
 | Scenario | URL | Occurances |
 | -------- | --- | ---------- |
 ${Array.from(responseMap.values())
+  .sort((a: k6Point[], b: k6Point[]) => {
+    return b.length - a.length
+  })
   .map((pointSet: k6Point[]) => {
     const uniquePoint: k6Point = pointSet[0]
     return `| ${uniquePoint.data.tags.scenario} | ${uniquePoint.data.tags.url} | ${pointSet.length} |`
