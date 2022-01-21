@@ -182,7 +182,7 @@ ${this.generateResponseSummaries(points)}
 
     return `
 
-## HTTP ${status}
+## HTTP ${status} [Learn More](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/${status})
 
 | Scenario | URL | Occurances |
 | -------- | --- | ---------- |
