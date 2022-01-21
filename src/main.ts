@@ -39,6 +39,7 @@ async function getk6Points(filename: string): Promise<k6Point[]> {
 
 async function run(): Promise<void> {
   try {
+    const name: string = core.getInput('name')
     const filename: string = core.getInput('filename', {required: true})
     const responseFilename: string = core.getInput('response-filename', {
       required: true
@@ -50,7 +51,7 @@ async function run(): Promise<void> {
     const points: k6Point[] = await getk6Points(responseFilename)
 
     const reportService: ReportService = new ReportService(token, baseUrl)
-    const htmlUrl = await reportService.create(summary, points)
+    const htmlUrl = await reportService.create(name, summary, points)
     core.notice(htmlUrl, {
       title: 'View k6 Report'
     })

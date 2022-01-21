@@ -15,12 +15,18 @@ export class ReportService {
     this.baseUrl = baseUrl
   }
 
-  async create(summary: k6Summary, points: k6Point[]): Promise<string> {
+  async create(
+    name: string,
+    summary: k6Summary,
+    points: k6Point[]
+  ): Promise<string> {
     return (
       await this.client.rest.checks.create({
         owner: context.repo.owner,
         repo: context.repo.repo,
-        name: `Load Test Report (${new Date().toISOString()})`,
+        name: `${
+          name ? name : 'Load Test Report'
+        } (${new Date().toISOString()})`,
         head_sha: context.sha,
         conclusion: 'success',
         output: {
@@ -130,9 +136,8 @@ ${this.generateResponseSummaries(points)}
   }
 
   private generateHttpStatusRow(key: string, counter: Counter): string {
-    return `| HTTP Status ${key.replace('http_status_', '')} | ${
-      counter.count
-    } |`
+    const status: number = +key.replace('http_status_', '')
+    return `| HTTP Status ${status} [Learn More](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/${status}) | ${counter.count} |`
   }
 
   private generateTrendRow(name: string, trend: Trend): string {

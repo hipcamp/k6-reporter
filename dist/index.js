@@ -86,6 +86,7 @@ function getk6Points(filename) {
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
+            const name = core.getInput('name');
             const filename = core.getInput('filename', { required: true });
             const responseFilename = core.getInput('response-filename', {
                 required: true
@@ -95,7 +96,7 @@ function run() {
             const summary = getk6Summary(filename);
             const points = yield getk6Points(responseFilename);
             const reportService = new report_service_1.ReportService(token, baseUrl);
-            const htmlUrl = yield reportService.create(summary, points);
+            const htmlUrl = yield reportService.create(name, summary, points);
             core.notice(htmlUrl, {
                 title: 'View k6 Report'
             });
@@ -138,12 +139,12 @@ class ReportService {
         this.client = (0, github_1.getOctokit)(token);
         this.baseUrl = baseUrl;
     }
-    create(summary, points) {
+    create(name, summary, points) {
         return __awaiter(this, void 0, void 0, function* () {
             return (yield this.client.rest.checks.create({
                 owner: github_1.context.repo.owner,
                 repo: github_1.context.repo.repo,
-                name: `Load Test Report (${new Date().toISOString()})`,
+                name: `${name ? name : 'Load Test Report'} (${new Date().toISOString()})`,
                 head_sha: github_1.context.sha,
                 conclusion: 'success',
                 output: {
@@ -209,7 +210,8 @@ ${this.generateResponseSummaries(points)}
             : (0, pretty_ms_1.default)(input, { formatSubMilliseconds: true });
     }
     generateHttpStatusRow(key, counter) {
-        return `| HTTP Status ${key.replace('http_status_', '')} | ${counter.count} |`;
+        const status = +key.replace('http_status_', '');
+        return `| HTTP Status ${status} [Learn More](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/${status}) | ${counter.count} |`;
     }
     generateTrendRow(name, trend) {
         return `| ${name} | ${this.formatMs(trend.avg)} | ${this.formatMs(trend.min)} | ${this.formatMs(trend.med)} | ${this.formatMs(trend.max)} | ${this.formatMs(trend.p90)} | ${this.formatMs(trend.p95)} |`;

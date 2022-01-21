@@ -2,6 +2,8 @@ name: 'k6-reporter'
 description: 'GitHub Actions k6 Report Generation for k6'
 author: 'hipcamp'
 inputs:
+  name:
+    description: 'name for report'
   filename:
     required: true
     description: 'report file from k6 run'
