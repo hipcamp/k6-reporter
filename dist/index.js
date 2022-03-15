@@ -98,7 +98,7 @@ function run() {
             const reportService = new report_service_1.ReportService(token, baseUrl);
             const htmlUrl = yield reportService.create(name, summary, points);
             core.notice(htmlUrl, {
-                title: 'View k6 Report'
+                title: name
             });
         }
         catch (error) {

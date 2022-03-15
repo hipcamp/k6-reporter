@@ -53,7 +53,7 @@ async function run(): Promise<void> {
     const reportService: ReportService = new ReportService(token, baseUrl)
     const htmlUrl = await reportService.create(name, summary, points)
     core.notice(htmlUrl, {
-      title: 'View k6 Report'
+      title: name
     })
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
