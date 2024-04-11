@@ -1,4 +1,3 @@
-/* eslint-disable filenames/match-regex */
 import {Counter, Trend, k6Summary} from './k6-summary'
 import {context, getOctokit} from '@actions/github'
 import {GitHub} from '@actions/github/lib/utils'
